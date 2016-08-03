@@ -5,8 +5,6 @@ VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ProjectEulerFSharp", "ProjectEulerFSharp\ProjectEulerFSharp.fsproj", "{43B0C982-BD2E-4FED-9359-6B469F241810}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnitTests", "UnitTests\UnitTests.fsproj", "{1DB18BBB-2862-4972-9A01-273BD44802F6}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{43B0C982-BD2E-4FED-9359-6B469F241810}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43B0C982-BD2E-4FED-9359-6B469F241810}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{43B0C982-BD2E-4FED-9359-6B469F241810}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1DB18BBB-2862-4972-9A01-273BD44802F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1DB18BBB-2862-4972-9A01-273BD44802F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1DB18BBB-2862-4972-9A01-273BD44802F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1DB18BBB-2862-4972-9A01-273BD44802F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
