@@ -51,9 +51,9 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Problem01.fs" />
-    <Compile Include="Problem02.fs" />
-    <Compile Include="Problem03.fs" />
+    <Compile Include="Problem001.fs" />
+    <Compile Include="Problem002.fs" />
+    <Compile Include="Problem003.fs" />
     <Compile Include="Problem038.fs" />
     <Compile Include="Problem054.fs" />
     <Content Include="Problem054-games.txt" />
