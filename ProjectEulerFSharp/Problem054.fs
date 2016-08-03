@@ -95,6 +95,8 @@ type Value =
         | 'J' -> Jack  | 'Q' -> Queen | 'K' -> King
         | 'A' -> Ace
         | _ -> raise (System.ArgumentException("Unrecognized card value code: " + v.ToString()))
+    static member Ordered = 
+        [Two; Three; Four; Five; Six; Seven; Eight; Nine; Ten; Jack; Queen; King; Ace]
 
 type Card = Value * Suit
 
@@ -108,80 +110,62 @@ type Hand =
     | OnePair of pairValue: Value * withHigh: Value
     | TwoPair of Value * Value
     | ThreeOfAKind of Value
-    | Straight of low: Value * high: Value
+    | Straight of high: Value
     | Flush of Suit
     | FullHouse of threeOf: Value * twoOf: Value
     | FourOfAKind of Value
-    | StraightFlush of low: Value * high: Value * suit: Suit
+    | StraightFlush of high: Value * suit: Suit
     | RoyalFlush of Suit 
     with member this.Name =
           match this with
-          | HighCard(_)          -> "High Card"
-          | OnePair(_,_)         -> "Pair"
-          | TwoPair(_,_)         -> "2 Pairs"
-          | ThreeOfAKind(_)      -> "Three of a Kind"
-          | Straight(_, _)       -> "Straight"
-          | Flush(_)             -> "Flush"
-          | FullHouse(_,_)       -> "Full House"
-          | FourOfAKind(_)       -> "Four of a Kind"
-          | StraightFlush(_,_,_) -> "Straight Flush"
-          | RoyalFlush(_)        -> "Royal Flush"
+          | HighCard(_)        -> "High Card"
+          | OnePair(_,_)       -> "Pair"
+          | TwoPair(_,_)       -> "2 Pairs"
+          | ThreeOfAKind(_)    -> "Three of a Kind"
+          | Straight(_)        -> "Straight"
+          | Flush(_)           -> "Flush"
+          | FullHouse(_,_)     -> "Full House"
+          | FourOfAKind(_)     -> "Four of a Kind"
+          | StraightFlush(_,_) -> "Straight Flush"
+          | RoyalFlush(_)      -> "Royal Flush"
 
-let handRank h =
-      match h with
-      | HighCard(_)          -> 0
-      | OnePair(_,_)         -> 1
-      | TwoPair(_,_)         -> 2
-      | ThreeOfAKind(_)      -> 3
-      | Straight(_, _)       -> 4
-      | Flush(_)             -> 5
-      | FullHouse(_,_)       -> 6
-      | FourOfAKind(_)       -> 7
-      | StraightFlush(_,_,_) -> 8
-      | RoyalFlush(_)        -> 9
+let tryGetFlush (ss: Suit list): Suit option =
+    ss |> Seq.distinct 
+       |> List.ofSeq
+       |> function 
+          | [suit] -> Some(suit) 
+          | _ -> None
 
-let handFromCards (cs: Card seq): Hand = 
-      let sortedValues = cs |> Seq.map fst |> Seq.sort |> List.ofSeq
-      let isFlush = cs |> Seq.map snd |> Seq.groupBy id |> Seq.length = 1
-      let lowValue = sortedValues.Head
-      let highValue = Seq.last sortedValues
-      let wouldBeStraightIntValues = 
-          [0..4] |> Seq.map (fun i -> i + lowValue.toInt ) 
-                 |> List.ofSeq
-      let sortedIntValues = sortedValues |> List.map (fun v -> v.toInt)
-      let isStraight = sortedIntValues = wouldBeStraightIntValues
-      if isFlush 
-      then let suit = cs |> Seq.head |> snd
-           if isStraight 
-           then if highValue = Ace 
-                then RoyalFlush(suit)
-                else StraightFlush(suit = suit, low = lowValue, high = highValue)
-           else Flush(suit)
-      else if isStraight
-           then Straight(low = lowValue, high = highValue)
-           else let valueGroups = sortedValues 
-                                   |> Seq.groupBy id 
-                                   |> Seq.map (fun (value, vs) -> (value, Seq.length vs)) 
-                                   |> List.ofSeq
-                System.Console.WriteLine(valueGroups)
-                let fourOfAKind  = valueGroups |> List.tryFind (fun (_, count) -> count = 4)
-                match fourOfAKind with
-                | Some((value,_)) -> FourOfAKind(value)
-                | None -> 
-                    let threeOfAKind = valueGroups |> List.tryFind (fun (_, count) -> count = 3)
-                    let twosOfAKind  = valueGroups |> List.filter  (fun (_, count) -> count = 2)
-                    match threeOfAKind with
-                    | Some((threeOfKindValue,_)) -> 
-                        match twosOfAKind |> Seq.tryHead with
-                        | Some((twoOfKindValue, _)) -> FullHouse(threeOf = threeOfKindValue, twoOf = twoOfKindValue)
-                        | None                      -> ThreeOfAKind(threeOfKindValue)
-                    | None -> 
-                        match twosOfAKind.Length with
-                        | 2 -> TwoPair(twosOfAKind.Item 0 |> fst, twosOfAKind.Item 1 |> fst)
-                        | 1 -> let pairValue = twosOfAKind.Item 0 |> fst 
-                               let high = sortedValues |> Seq.filter (fun v -> v <> pairValue) |> Seq.last
-                               OnePair(pairValue = pairValue, withHigh = high)
-                        | _ -> HighCard(highValue)
+let tryGetStraightHigh (vs: Value list): Value option =
+    let sorted = List.sort vs
+    let straightStart = List.head sorted 
+    let wouldBeStraight = Value.Ordered 
+                          |> List.skipWhile (fun v -> v <> straightStart)
+                          |> List.truncate 5
+    if sorted = wouldBeStraight
+    then Some(List.last sorted)
+    else None
+
+let handFromCards (cs: Card list): Hand = 
+      let orderedValues = cs |> Seq.map fst |> List.ofSeq |> List.sortDescending 
+      let flush  = cs |> List.map snd |> tryGetFlush
+      let straight = tryGetStraightHigh orderedValues 
+      match flush, straight with
+      | Some(suit), Some(Ace)  -> RoyalFlush(suit)
+      | Some(suit), Some(high) -> StraightFlush(suit = suit, high = high)
+      | Some(suit), None       -> Flush(suit)
+      | None,       Some(high) -> Straight(high = high)
+      | None,       None       -> orderedValues 
+                                  |> List.groupBy id 
+                                  |> List.map (fun (value, vs) -> (value, List.length vs)) 
+                                  |> List.sortByDescending snd
+                                  |> function
+                                     | [(fourOf, 4); _]                -> FourOfAKind(fourOf)
+                                     | [(threeOf, 3); (twoOf, 2)]      -> FullHouse(threeOf, twoOf)
+                                     | (threeOf, 3) :: _               -> ThreeOfAKind(threeOf)
+                                     | (twoOfA, 2) :: (twoOfB, 2) :: _ -> TwoPair(twoOfA, twoOfB)
+                                     | (twoOf, 2) :: _                 -> OnePair(twoOf, orderedValues |> List.skip 2 |> List.head)
+                                     | _                               -> HighCard(orderedValues |> List.head)
 
 type Player = Player1 | Player2
               with override this.ToString() = 
@@ -206,7 +190,7 @@ type Game(player1: Card list, player2: Card list) =
         let player2Hand = Seq.skip 5 looseCards |> List.ofSeq
         Game(player1Hand, player2Hand)
 
-//Tests from the problem description:
+//"Tests" from the problem description:
 let pairs =            Game.parse "5H 5C 6S 7S KD 2C 3S 8S 8D TD"
 let aceVsQueen =       Game.parse "5D 8C 9S JS AC 2C 5C 7D 8S QH"
 let flushVsThreeAces = Game.parse "2D 9C AS AH AC 3D 6D 7D TD QD"
@@ -214,7 +198,7 @@ let pairsWithHighest = Game.parse "4D 6S 9H QH QC 3D 6D 7H QD QS"
 let fullHouses =       Game.parse "2H 2D 4C 4D 4S 3C 3D 3S 9S 9D"
 let games = [pairs; aceVsQueen; flushVsThreeAces; pairsWithHighest; fullHouses]
 let winners = games |> List.map (fun g -> g.Winner)
-//Other tests
+//Other "tests"
 let royalFlushes =     Game.parse "TH JH QH KH AH TC JC QC KC AC"
 let straightFlushes =  Game.parse "9H TH JH QH KH 9C TC JC QC KC"
 let flushes =          Game.parse "2H 5H 8H 9H AH 5C 6C 8C TC KC"
@@ -1231,6 +1215,19 @@ let solutionGames =
     |]
     |> List.ofArray
     |> List.map Game.parse
+
+let handRank h =
+      match h with
+      | HighCard(_)          -> 0
+      | OnePair(_,_)         -> 1
+      | TwoPair(_,_)         -> 2
+      | ThreeOfAKind(_)      -> 3
+      | Straight(_)          -> 4
+      | Flush(_)             -> 5
+      | FullHouse(_,_)       -> 6
+      | FourOfAKind(_)       -> 7
+      | StraightFlush(_,_)   -> 8
+      | RoyalFlush(_)        -> 9
 
 let statistics =
     solutionGames
